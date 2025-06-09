@@ -10,14 +10,16 @@ import java.util.List;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
-    // dodatkowe metody (opcjonalnie) np. losowe pytania
 
     @Query(value = "SELECT * FROM question ORDER BY RAND() LIMIT 5", nativeQuery = true)
-    java.util.List<Question> findFiveRandomQuestions();
+    List<Question> findFiveRandomQuestions();
 
     @Query(value = "SELECT * FROM question WHERE category = :category ORDER BY RAND() LIMIT 5", nativeQuery = true)
     List<Question> findFiveRandomQuestionsByCategory(@Param("category") String category);
 
     @Query("SELECT DISTINCT q.category FROM Question q")
     List<String> findDistinctCategories();
+
+    @Query(value = "SELECT * FROM question WHERE category = :category ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Question> findRandomQuestionsByCategory(@Param("category") String category, @Param("limit") int limit);
 }

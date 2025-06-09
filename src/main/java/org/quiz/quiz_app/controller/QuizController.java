@@ -39,8 +39,11 @@ public class QuizController {
         return quizService.getResultsByEmail(email, page);
     }
     @GetMapping("/category")
-    public List<QuestionDto> getQuestionsByCategory(@RequestParam String category) {
-        return quizService.getFiveRandomQuestionsByCategory(category);
+    public List<QuestionDto> getQuestionsByCategory(
+            @RequestParam String category,
+            @RequestParam(name = "questions", defaultValue = "5") int numberOfQuestions
+    ) {
+        return quizService.getRandomQuestionsByCategory(category, numberOfQuestions);
     }
 
     @GetMapping("/categories")

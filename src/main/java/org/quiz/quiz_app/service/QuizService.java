@@ -1,6 +1,7 @@
 package org.quiz.quiz_app.service;
 
 import org.quiz.quiz_app.dto.*;
+import org.quiz.quiz_app.mapper.QuestionMapper;
 import org.quiz.quiz_app.model.Question;
 import org.quiz.quiz_app.model.QuizResult;
 import org.quiz.quiz_app.repository.QuestionRepository;
@@ -11,7 +12,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 
+import java.util.stream.Collectors;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -32,32 +36,42 @@ public class QuizService {
                 .map(q -> new QuestionDto(q.getId(), q.getContent(), q.getOptions()))
                 .toList();
     }
+    public List<QuestionDto> getRandomQuestionsByCategory(String category, int numberOfQuestions) {
+        List<Question> questions = questionRepository.findRandomQuestionsByCategory(category, numberOfQuestions);
+        return questions.stream()
+                .map(QuestionMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
     public QuizResultDto checkQuizAnswers(QuizSubmissionDto submission) {
-        int correct = 0;
-        int total = submission.getAnswers().size();
+        List<Long> correctIds = new ArrayList<>();
+        List<Long> wrongIds = new ArrayList<>();
 
         for (AnswerDto answer : submission.getAnswers()) {
             Question q = questionRepository.findById(answer.getQuestionId()).orElse(null);
-            if (q != null && q.getCorrectAnswerIndex() == answer.getSelectedAnswerIndex()) {
-                correct++;
+            if (q != null) {
+                if (q.getCorrectAnswerIndex() == answer.getSelectedAnswerIndex()) {
+                    correctIds.add(q.getId());
+                } else {
+                    wrongIds.add(q.getId());
+                }
             }
         }
 
         if (submission.getEmail() != null && !submission.getEmail().isBlank()) {
             QuizResult result = QuizResult.builder()
                     .email(submission.getEmail())
-                    .correct(correct)
-                    .total(total)
+                    .correct(correctIds.size())
+                    .total(submission.getAnswers().size())
                     .submittedAt(LocalDateTime.now())
                     .build();
 
             quizResultRepository.save(result);
         }
-        return new QuizResultDto(new QuizResultInnerDto(correct, total));
 
+        QuizResultInnerDto resultInnerDto = new QuizResultInnerDto(correctIds, wrongIds);
+        return new QuizResultDto(resultInnerDto);
     }
-
 
     public List<QuizResultSummaryDto> getResultsByEmail(String email, int page) {
         Pageable pageable = PageRequest.of(page, 10); // 10 wyników na stronę
